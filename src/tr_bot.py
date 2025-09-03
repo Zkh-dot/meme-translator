@@ -29,6 +29,8 @@ with open(os.path.join(os.path.dirname(__file__), 'admins.json')) as admin_list:
 CYR = re.compile(r"[А-Яа-яЁё]")
 
 def translate(texts: list[str]):
+    texts = '\n'.join(texts)
+    print(f'translating text: {texts}')
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Api-Key {YA_TR_TOKEN}",
@@ -43,7 +45,8 @@ def translate(texts: list[str]):
         json=body,
         headers=headers,
     ).text)
-    if "translations" in response:
+    if "translations" in response:        
+        return response['translations'][0]['text'].split('\n')
         return [x['text'] for x in response['translations']]
     else:
         a = [""] * len(texts)
@@ -55,7 +58,7 @@ CONFUSABLES_LAT2CYR = str.maketrans({
 })
 
 def cyr_ratio(s: str) -> float:
-    s2 = "".join(ch for ch in s if not ch.isspace())
+    s2 = "\n".join(ch for ch in s if not ch.isspace())
     if not s2: return 0.0
     return len(CYR.findall(s2)) / len(s2)
 
@@ -187,7 +190,7 @@ def process_image_bytes(data: bytes) -> Tuple[str, list[str]]:
     clusters_list = cluster(items, (H,W), EPS_PCT)
     if not clusters_list:
         return "no russian text", []
-    texts_ru = ["".join(i["text"] for i in c["items"]) for c in clusters_list]
+    texts_ru = ["\n".join(i["text"] for i in c["items"]) for c in clusters_list]
     texts_en = translate(texts_ru) or []
     parts = []
     for i, t in enumerate(texts_en, 1):
@@ -201,14 +204,14 @@ def process_image_bytes(data: bytes) -> Tuple[str, list[str]]:
     for para in parts:
         block = (para)
         if cur_len + len(block) > CAP_LIMIT and cur:
-            extra.append("".join(cur).strip())
+            extra.append("\n".join(cur).strip())
             cur = [block]
             cur_len = len(block)
         else:
             cur.append(block)
             cur_len += len(block)
     if cur:
-        extra.append("".join(cur).strip())
+        extra.append("\n".join(cur).strip())
     caption = extra.pop(0)
     return caption, extra
 
